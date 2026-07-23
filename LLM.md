@@ -436,6 +436,24 @@ gh skill update
 
 ## 8. プロジェクトローカルの rules / skills
 
+### 8-0. CLAUDE.md に「変更時の必須手順」を書く
+
+ここまでの仕組みは全て「SSOT を更新したら派生物が追随する」ことを保証するが、
+**SSOT 自体の更新漏れは誰も検出できない**。フラグを1つ足したときに
+`00-guide.md` の鉄則や `context7.json` の落とし穴を書き足すかどうかは、
+最後まで人間とエージェントの判断に残る。
+
+ドキュメントとヘルプが古ければ人間が読んで気づく。しかし
+**LLMナレッジが古いことには誰も気づかない** — エージェントが黙って間違えるだけで、
+症状は「なぜかうまく使えない」という形でしか現れない。だから CLAUDE.md に
+明示的に書く。
+
+雛形は `templates/CLAUDE.md`。要点は、変更したときに更新すべき先を
+**①ドキュメント ②ヘルプ ③LLMナレッジ** の3点セットとして表で示し、
+「どの変更のときにどれを直すか」の判断目安を添えること。
+
+既に CLAUDE.md がある CLI では、上書きせず該当節を追記する。
+
 本体リポに入った Claude Code セッションを「派生物のズレを作らない共同編集者」に
 仕立てる仕掛け。**コミットする**（`.claude/settings.local.json` は除く）。
 
@@ -492,6 +510,8 @@ private CLI では `context7.json` を置かない。代わりに `00-guide.md` 
 - [ ] `context7.json`（public のみ）
 - [ ] CI に `go generate` → `git diff --exit-code` → `go test` → `go run . llm`
 - [ ] README に「AIエージェントから使う」節（plugin install / gh skill / `<cli> llm`）
+- [ ] **`CLAUDE.md` に「変更時の必須手順」節**（`templates/CLAUDE.md` を参照。
+      既存の CLAUDE.md がある場合は追記する）
 - [ ] `.claude/rules` と `.claude/skills/regen-ai`
 - [ ] marketplace.json に追加（public / private の該当リポ）
 - [ ] context7 へ登録（public のみ）
