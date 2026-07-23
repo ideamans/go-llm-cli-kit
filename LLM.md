@@ -183,7 +183,7 @@ go get github.com/ideamans/go-llm-cli-kit
 | パッケージ | 役割 |
 | --- | --- |
 | `llmdocs` | embed した Markdown 章を名前順に結合し、Markdown / JSON で返す |
-| `catalog` | cobra のコマンドツリーから Markdown / JSON のコマンドカタログを生成 |
+| `catalog` | cobra のコマンドツリーから Markdown / JSON のコマンドカタログを生成（`Compact` で大規模ツリー向けの1行形式） |
 | `llmcmd` | `llm` サブコマンドと、非推奨 `--llm` フラグの後方互換処理 |
 | `skillcheck` | 配布用 SKILL.md と plugin.json の検証（`go test` から呼ぶ） |
 
@@ -243,6 +243,47 @@ if handled, err := llmcmd.HandleLegacy(os.Args[1:], cfg, os.Stdout); handled {
 `cmd.Root()` のように「組み立て済みの cobra ツリーを実行せずに返す」関数が要る。
 既存 CLI がパッケージ変数 `rootCmd` を `init()` で組んでいる場合は、それを返す
 エクスポート関数を1本足すだけでよい。
+
+生成器の置き場所は CLI の構造で2パターンある。
+
+| パターン | 置き場所 | 選ぶ条件 |
+| --- | --- | --- |
+| A（既定） | `internal/gen-llmdocs/main.go` + `//go:generate go run ../gen-llmdocs` を `internal/llmdocs/llmdocs.go` に | コマンド定義が `cmd/` など独立パッケージにある |
+| B | package main に hidden サブコマンド `gen-llmdocs` + `//go:generate go run . gen-llmdocs` を `main.go` に | CLI 全体が package main の単一パッケージ |
+
+B を選ぶのは、生成にコマンドツリーと（vultr-cli のように）リフレクション
+ヘルパーの両方が要り、それらが package main にあるとき。独立プログラムから
+呼ぶには全体をパッケージ分割する必要があり、**動いている CLI を作り直す代償に
+見合わない**。hidden にしてカタログからも `Skip` で除外すれば、エージェントには
+見えない。
+
+### 5-3-1. バージョン整合の担保
+
+`plugin.json.version` が実体とズレると、利用者はバイナリに無いバージョンを
+名乗るプラグインを入れることになる。goreleaser は `-ldflags` でビルド時に
+バージョンを注入するため、ローカルでは `dev` になり比較に使えない。
+
+そこでリポジトリ内に定数を置き、2段で縛る。
+
+```go
+// main.go
+const pluginVersion = "0.2.0"
+var version = pluginVersion // goreleaser が -X main.version で上書きする
+```
+
+- `plugin.json.version` ↔ `pluginVersion` … `skillcheck` の `Version` オプション（テスト）
+- `pluginVersion` ↔ git タグ … リリースワークフローの1ステップ
+
+```yaml
+- name: Verify the tag matches pluginVersion
+  run: |
+    tag="${GITHUB_REF_NAME#v}"
+    declared=$(grep -oE 'pluginVersion = "[^"]+"' main.go | cut -d'"' -f2)
+    [ "$tag" = "$declared" ] || { echo "::error::tag $GITHUB_REF_NAME != $declared"; exit 1; }
+```
+
+`--version` の出力をパースして比較しないこと。出力書式は自分で決めたテンプレート
+であり、変えた瞬間にリリースが壊れる。定数を直接読む。
 
 ```go
 md := catalog.Markdown(root, catalog.Options{
@@ -472,6 +513,15 @@ private CLI では `context7.json` を置かない。代わりに `00-guide.md` 
   正しい挙動なので、落ちたら description 側を見直す。
 - **install スキルのアセット名を推測で書く**。goreleaser の設定によって
   OS/arch セグメントの大文字小文字が違う。リリースページを見て確認する。
+  さらに `uname -m` の `x86_64` は goreleaser の `amd64` に読み替えが要る。
+- **バイナリ名がリポジトリ名と違う**ケースを install スキルに書き忘れる。
+  goreleaser の `binary:` はアーカイブ内の名前を決めるが、`go install` は
+  **モジュール名の末尾**を使う。vultr-cli では前者が `vultr`、後者が `vultr-cli`
+  になる。経路によって呼び名が変わることをスキル本文に明記しないと、
+  「入れたのに `vultr` が無い」で止まる。
+- **カタログが巨大になる**。数百オペレーションある CLI では
+  `catalog.Options.Compact` を使う。既定の詳細形式はコマンド数が
+  数十までのCLI向け。
 
 ---
 
