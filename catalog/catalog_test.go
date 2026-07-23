@@ -177,3 +177,40 @@ func TestOmitFlags(t *testing.T) {
 		t.Errorf("OmitFlags still rendered a flag table:\n%s", md)
 	}
 }
+
+func TestCompactMode(t *testing.T) {
+	md := Markdown(demoRoot(), Options{Compact: true, Skip: []string{"llm"}})
+
+	// Groups keep their heading; leaves collapse to one bullet each.
+	if !strings.Contains(md, "## `demo apps`") {
+		t.Errorf("group heading missing:\n%s", md)
+	}
+	if !strings.Contains(md, "- `demo apps list [query]`") {
+		t.Errorf("leaf bullet missing:\n%s", md)
+	}
+	if !strings.Contains(md, "— list apps") {
+		t.Errorf("leaf short description missing:\n%s", md)
+	}
+	if !strings.Contains(md, "`[--limit]`") {
+		t.Errorf("leaf flags missing:\n%s", md)
+	}
+	// The only flag table left is the global one.
+	if n := strings.Count(md, "| flag | type |"); n != 1 {
+		t.Errorf("got %d flag tables, want only the global one:\n%s", n, md)
+	}
+}
+
+func TestCompactModeKeepsGlobalFlagTable(t *testing.T) {
+	md := Markdown(demoRoot(), Options{Compact: true})
+	if !strings.Contains(md, "## Global flags") || !strings.Contains(md, "`--profile`") {
+		t.Errorf("global flags should still be tabulated:\n%s", md)
+	}
+}
+
+func TestCompactModeIsMuchShorter(t *testing.T) {
+	full := len(strings.Split(Markdown(demoRoot(), Options{}), "\n"))
+	compact := len(strings.Split(Markdown(demoRoot(), Options{Compact: true}), "\n"))
+	if compact >= full {
+		t.Errorf("compact output is %d lines, full is %d — compact should be shorter", compact, full)
+	}
+}

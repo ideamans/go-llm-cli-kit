@@ -40,6 +40,12 @@ type Options struct {
 
 	// OmitFlags renders commands without their flag tables.
 	OmitFlags bool
+
+	// Compact renders each leaf command as a single bullet line instead of a
+	// section with a flag table. Reach for it when the tree is large — a CLI
+	// that reflects a whole API into several hundred operations produces a
+	// reference no agent can afford to read in the default form.
+	Compact bool
 }
 
 // Flag is a single command-line flag.
@@ -165,8 +171,51 @@ func Markdown(root *cobra.Command, opts Options) string {
 		writeFlagTable(&b, c.PersistentFlags)
 	}
 
-	writeCommands(&b, c.Commands, 2)
+	if opts.Compact {
+		writeCompact(&b, c.Commands, 2)
+	} else {
+		writeCommands(&b, c.Commands, 2)
+	}
 	return b.String()
+}
+
+// writeCompact renders groups as headings and leaves as one bullet each.
+func writeCompact(b *strings.Builder, cmds []Command, depth int) {
+	for _, c := range cmds {
+		if len(c.Commands) == 0 {
+			fmt.Fprintf(b, "- `%s`%s%s\n", usageLine(c), compactFlags(c), compactShort(c))
+			continue
+		}
+
+		level := depth
+		if level > 6 {
+			level = 6
+		}
+		fmt.Fprintf(b, "\n%s `%s`\n", strings.Repeat("#", level), c.Path)
+		if c.Short != "" {
+			fmt.Fprintf(b, "\n%s\n", c.Short)
+		}
+		b.WriteString("\n")
+		writeCompact(b, c.Commands, depth+1)
+	}
+}
+
+func compactShort(c Command) string {
+	if c.Short == "" {
+		return ""
+	}
+	return " — " + strings.ReplaceAll(c.Short, "\n", " ")
+}
+
+func compactFlags(c Command) string {
+	if len(c.Flags) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(c.Flags))
+	for _, f := range c.Flags {
+		names = append(names, "--"+f.Name)
+	}
+	return " `[" + strings.Join(names, " ") + "]`"
 }
 
 func writeCommands(b *strings.Builder, cmds []Command, depth int) {
