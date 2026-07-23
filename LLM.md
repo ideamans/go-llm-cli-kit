@@ -513,8 +513,29 @@ private CLI では `context7.json` を置かない。代わりに `00-guide.md` 
 - [ ] **`CLAUDE.md` に「変更時の必須手順」節**（`templates/CLAUDE.md` を参照。
       既存の CLAUDE.md がある場合は追記する）
 - [ ] `.claude/rules` と `.claude/skills/regen-ai`
+- [ ] **PR をマージしたらタグを push してリリースする**（下記 10-1）
 - [ ] marketplace.json に追加（public / private の該当リポ）
 - [ ] context7 へ登録（public のみ）
+
+### 10-1. 版付けとリリース
+
+**標準の適用は常にマイナーアップ**。`llm` サブコマンドとプラグインという
+新機能が必ず入るため、パッチでは実態を過小に表示することになる
+（v0.1.0 → v0.2.0）。リリース実績のない CLI は v0.1.0 が初回リリース。
+
+「機能は変わっていない」と感じても、利用者から見ると新しいサブコマンドと
+新しい配布物（プラグイン）が増えている。加えて `--llm` の出力は1枚テキストから
+章構成に変わるため、出力を grep していた利用者には影響が出る。パッチが示唆する
+「何も変わっていない」より重い。
+
+流れは **PR をマージ → タグを push → goreleaser がリリースを作る**。
+タグは `pluginVersion` と一致していること（リリースワークフローが検査する）。
+
+```bash
+git checkout main && git pull
+git tag -a v0.2.0 -m "v0.2.0 — LLM CLI standard"
+git push origin v0.2.0
+```
 
 ### 受け入れ基準
 
@@ -522,6 +543,9 @@ private CLI では `context7.json` を置かない。代わりに `00-guide.md` 
 - `go generate ./...` 後に `git diff` が空
 - `<cli> llm` と `<cli> llm --format json` が動く
 - 旧 `<cli> <subcommand> --llm` が従来どおり動く
+- **リリース後、install スキルの手順をそのまま1回実行して通ること**。
+  アセット名・OS/arch のマッピング・アーカイブ内のバイナリ名は
+  実物で確かめないと合っているか分からない
 - 新規セッションの Claude Code にプラグインだけ渡して、実際に用が足せる（ドッグフード）
 
 ### 引っ越し時の落とし穴
