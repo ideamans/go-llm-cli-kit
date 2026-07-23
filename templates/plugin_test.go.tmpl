@@ -1,0 +1,33 @@
+// TEMPLATE. Copy to plugin_test.go (or internal/plugin/plugin_test.go) in the
+// CLI repository.
+//
+// This is the whole enforcement mechanism for the distributed plugin: the
+// version match, the Agent Skills frontmatter rules, and the discovery keywords
+// that make an agent reach for the skill in the first place.
+package main
+
+import (
+	"testing"
+
+	"github.com/ideamans/go-llm-cli-kit/skillcheck"
+)
+
+func TestPluginSkills(t *testing.T) {
+	report := skillcheck.CheckDir("plugins/<cli>", skillcheck.Options{
+		// Same value the binary reports as --version. When goreleaser injects
+		// it via -ldflags, keep a VERSION constant in the repository and assert
+		// against that instead of the ldflags variable, which is "dev" locally.
+		Version: version,
+
+		// Terms a user is likely to say when they need this tool. Changing a
+		// skill description without updating this list is exactly the silent
+		// regression this test exists to catch.
+		Keywords: []string{"<domain term>", "<action verb>"},
+
+		RequireInstallSkill: true,
+	})
+
+	for _, problem := range report.Problems {
+		t.Error(problem)
+	}
+}

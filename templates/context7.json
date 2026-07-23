@@ -1,0 +1,16 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "<cli>",
+  "description": "<One paragraph: what the CLI wraps, what it produces, and who calls it. This is the blurb context7 shows in search results, so lead with the concrete capability rather than the company.>",
+  "folders": ["internal/llmdocs", "docs"],
+  "excludeFolders": ["node_modules", "dist", "vendor", "testdata"],
+  "excludeFiles": ["CHANGELOG.md"],
+  "rules": [
+    "TEMPLATE — replace these with 5 to 10 real pitfalls. Rules earn their place by describing something an agent gets wrong when reasoning from the API alone; anything obvious from reading the command catalog does not belong here.",
+    "State the machine-readable output switch and that the default output is for humans.",
+    "State how credentials are supplied and what the failure looks like when they are missing.",
+    "State the exit-code contract, including any failure that does NOT change the exit code.",
+    "State which identifier addresses an object and where that value comes from in earlier output.",
+    "State anything the CLI refuses to do, so an agent stops instead of retrying."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "example-cli",
+  "description": "Adds /example-cli-usage and /example-cli-install skills for driving the example-cli command-line tool.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ideamans Inc.",
+    "email": "support@ideamans.com"
+  },
+  "homepage": "https://github.com/ideamans/example-cli",
+  "repository": "https://github.com/ideamans/example-cli",
+  "license": "MIT",
+  "keywords": ["cli", "llm", "agent"]
+}

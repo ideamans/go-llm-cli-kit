@@ -1,0 +1,43 @@
+# TEMPLATE. Copy into .github/workflows/ of the CLI repository, or fold these
+# steps into the existing test workflow.
+#
+# The generated command catalog is committed (go:embed needs a real file at
+# build time), so the guard against drift is regenerating it in CI and failing
+# on a dirty tree.
+name: llm-artifacts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Regenerate the embedded LLM reference
+        run: go generate ./...
+
+      - name: Fail if the committed reference is stale
+        run: |
+          if ! git diff --exit-code; then
+            echo "::error::internal/llmdocs is out of date. Run 'go generate ./...' and commit the result."
+            exit 1
+          fi
+
+      # Covers the skillcheck test: plugin.json version match, Agent Skills
+      # frontmatter, discovery keywords, presence of the install skill.
+      - name: Test
+        run: go test ./...
+
+      - name: Verify the llm subcommand renders
+        run: |
+          go run . llm | head -5
+          go run . llm --format json | head -5
