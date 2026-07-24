@@ -214,3 +214,21 @@ func TestCompactModeIsMuchShorter(t *testing.T) {
 		t.Errorf("compact output is %d lines, full is %d — compact should be shorter", compact, full)
 	}
 }
+
+func TestUsageBlockOnlyWhenItAddsSomething(t *testing.T) {
+	root := &cobra.Command{Use: "demo"}
+	withArgs := &cobra.Command{Use: "get <id>", Short: "get one"}
+	noArgs := &cobra.Command{Use: "ping", Short: "ping"}
+	root.AddCommand(withArgs, noArgs)
+
+	md := Markdown(root, Options{})
+
+	if !strings.Contains(md, "demo get <id>") {
+		t.Errorf("a command taking arguments must show its usage line:\n%s", md)
+	}
+	// `demo ping` appears as a heading; it must not also appear as a code block
+	// that repeats the heading verbatim.
+	if strings.Contains(md, "```\ndemo ping\n```") {
+		t.Errorf("usage block repeats the heading for an argument-less command:\n%s", md)
+	}
+}

@@ -232,7 +232,11 @@ func writeCommands(b *strings.Builder, cmds []Command, depth int) {
 		if long := strings.TrimSpace(c.Long); long != "" && long != strings.TrimSpace(c.Short) {
 			fmt.Fprintf(b, "\n%s\n", long)
 		}
-		if usage := usageLine(c); usage != "" {
+		// Only worth a code block when it says more than the heading already
+		// does — i.e. the command takes positional arguments. Repeating the
+		// path for every command costs four lines each and tells an agent
+		// nothing.
+		if usage := usageLine(c); usage != "" && usage != c.Path {
 			fmt.Fprintf(b, "\n```\n%s\n```\n", usage)
 		}
 		if len(c.Aliases) > 0 {
